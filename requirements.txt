@@ -1,0 +1,22 @@
+# Core LLM and LangChain packages
+openai>=1.43.0
+langchain>=0.2.16
+langchain-core>=0.2.38
+langchain-openai>=0.1.17
+langchain-chroma>=0.1.2
+langchain-community>=0.1.14
+langchain-text-splitters>=0.1.7
+
+# Data modeling
+pydantic>=2.8.2
+typing-extensions>=4.11.0
+
+# Optional (helpful for running notebooks or testing)
+python-dotenv>=1.0.1     # to load API keys from .env
+ipykernel>=6.29.5        # if using Jupyter
+pytest>=7.4.2           # for testing
+python-dotenv>=1.0.1
+
+streamlit==1.46.1
+unstructured>=0.7.0
+yfinance>=0.2.27

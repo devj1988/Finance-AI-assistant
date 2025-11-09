@@ -1,0 +1,16 @@
+{
+        "base_currency": "USD",
+        "horizon_years": 5,
+        "holdings": [
+            {
+                "ticker": "AVGO",
+                "weight_percent": 60.0,
+                "current_value": 25000
+            },
+            {
+                "ticker": "VOO",
+                "weight_percent": 40.0,
+                "current_value": 15000
+            }
+        ]
+}

@@ -1,0 +1,81 @@
+{
+  "summary": "This portfolio is a moderately diversified mix of US equities, US bonds, and international equities, with a balanced allocation suitable for a moderate risk tolerance and a long-term horizon.",
+  "allocation_overview_asset_class": [
+    {
+      "category": "Equity",
+      "weight_percent": 70.0,
+      "comment": "Equities provide growth potential over the long term."
+    },
+    {
+      "category": "Bond",
+      "weight_percent": 30.0,
+      "comment": "Bonds add income and reduce overall portfolio volatility."
+    }
+  ],
+  "allocation_overview_region": [
+    {
+      "category": "US",
+      "weight_percent": 80.0,
+      "comment": "Majority exposure to US markets through stocks and bonds."
+    },
+    {
+      "category": "International",
+      "weight_percent": 20.0,
+      "comment": "International equities provide geographic diversification."
+    }
+  ],
+  "allocation_overview_sector": [
+    {
+      "category": "Broad Market",
+      "weight_percent": 70.0,
+      "comment": "Broad market ETFs cover multiple sectors within equities."
+    },
+    {
+      "category": "Bonds",
+      "weight_percent": 30.0,
+      "comment": "Bond exposure is concentrated in US bond market."
+    }
+  ],
+  "risk_level": "moderate",
+  "concentration_flags": [
+    {
+      "label": "VTI (US Total Stock Market ETF)",
+      "weight_percent": 50.0,
+      "concern_level": "moderate",
+      "explanation": "Half the portfolio is in a single broad US equity ETF, which is diversified within US stocks but still a large single position."
+    },
+    {
+      "label": "US Market Exposure",
+      "weight_percent": 80.0,
+      "concern_level": "moderate",
+      "explanation": "High concentration in US markets may limit geographic diversification benefits."
+    }
+  ],
+  "diversification_and_gaps": [
+    {
+      "topic": "Limited Emerging Markets Exposure",
+      "explanation": "The international equity allocation is broad but may underrepresent emerging markets specifically.",
+      "potential_impact": "May reduce potential growth and diversification benefits from faster-growing economies."
+    }
+  ],
+  "fees_and_efficiency": {
+    "overall_fee_level": "unknown",
+    "observations": [
+      "Holdings are broad market ETFs which typically have low expense ratios.",
+      "No explicit fee data provided, but Vanguard ETFs are generally cost-efficient."
+    ]
+  },
+  "suitability_vs_time_horizon": {
+    "assumed_horizon_years": 15,
+    "assumed_risk_tolerance": "moderate",
+    "qualitative_fit": "good",
+    "explanation": "The portfolio's mix of 70% equities and 30% bonds aligns well with a moderate risk tolerance and a 15-year investment horizon, balancing growth and risk."
+  },
+  "questions_and_next_steps": [
+    "Are you comfortable with 50% of your portfolio in a single US equity ETF?",
+    "Would you consider increasing international or emerging markets exposure for greater diversification?",
+    "Is the 30% bond allocation sufficient for your risk comfort as you approach retirement?",
+    "Have you reviewed the expense ratios of your ETFs to ensure cost efficiency?"
+  ],
+  "disclaimer": "This analysis is educational only and not financial advice. Past performance does not guarantee future results."
+}
