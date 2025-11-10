@@ -2,7 +2,7 @@ import streamlit as st
 from agents import portfolio_insights
 from data.portfolios import simple_portfolio
 import json
-from agents.chat_agent import get_response
+from agents.qa_agent_gemini import get_response
 
 # Initialize Streamlit state
 if "messages" not in st.session_state:
@@ -115,7 +115,7 @@ def main():
             st.session_state.messages.append({"role": "user", "content": prompt})
 
             # response = f"Echo: {prompt}"
-            response= get_response(prompt)
+            response= get_response(prompt, 1)
             # Display assistant response in chat message container
             with st.chat_message("assistant"):
                 st.markdown(response)

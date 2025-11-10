@@ -1,4 +1,5 @@
 from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from typing import Any, Dict
@@ -13,10 +14,13 @@ from core.model import PortfolioInsights  # or inline them
 from utils.prompts import main_prompt
 
 # (2) Create your model with structured output
-llm = ChatOpenAI(
-    model=MODEL_NAME,  # or whichever model you’re using
-    temperature=0.1,
-)
+# llm = ChatOpenAI(
+#     model=MODEL_NAME,  # or whichever model you’re using
+#     temperature=0.1,
+# )
+
+llm = ChatGoogleGenerativeAI(model=MODEL_NAME)
+
 
 llm_with_tools = llm.bind_tools([get_ticker_info])
 structured_llm = llm_with_tools.with_structured_output(PortfolioInsights)  # if using tools
