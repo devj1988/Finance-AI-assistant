@@ -3,7 +3,8 @@ import streamlit as st
 from data.portfolios import simple_portfolio
 import json
 # from agents.qa_agent_gemini import get_response
-from agents.workflow import create_workflow
+from workflow import create_workflow
+from langchain_core.messages import HumanMessage
 
 app = create_workflow()
 
@@ -67,6 +68,7 @@ def display_analysis(analysis):
         st.markdown("### Disclaimer")
         st.write(analysis.disclaimer)
 
+
 def handle_portfolio_insights():
     st.subheader("Example Portfolio JSON")
     st.json(simple_portfolio, expanded=False)
@@ -83,10 +85,12 @@ def handle_portfolio_insights():
             if st.button("Analyze Portfolio"):
                 with st.spinner("Analyzing portfolio..."):
                     # analysis = portfolio_insights.analyze_portfolio(portfolio, user_goal)
-                    analysis = app.invoke({
+                    messages = app.invoke({
+                        "context": "portfolio",
                         "portfolio_json": portfolio,
                         "user_goal": user_goal,
-                    })
+                    }, {"configurable": {"thread_id": "1"}})
+                    analysis = messages['messages'][-1]
                     st.json(analysis, expanded=False)  # Display raw JSON output
                     display_analysis(analysis)
         except json.JSONDecodeError:

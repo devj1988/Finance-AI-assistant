@@ -1,20 +1,23 @@
-from langchain_openai import OpenAIEmbeddings
+# from langchain_openai import OpenAIEmbeddings
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import UnstructuredURLLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
+# from utils import urls
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 load_dotenv()  # take environment variables from .env file
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+# embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
-from langchain_chroma import Chroma
+# embeddings = OllamaEmbeddings(
+#     model="llama3",
+# )
 
-def create_vector_store():
-    """Search for relevant documents."""
-    # Example URL configuration
-    urls = [
+all_urls=[
         "https://www.investopedia.com/personal-finance-4427760",
         "https://www.investopedia.com/budgeting-and-savings-4427755",
         "https://www.investopedia.com/personal-loans-4689729",
@@ -27,42 +30,45 @@ def create_vector_store():
         "https://www.investopedia.com/financial-literacy-resource-center-7151950",
         "https://www.investopedia.com/financial-literacy-resource-center-7151950"
     ]
+
+from langchain_chroma import Chroma
+
+def create_vector_store():
+    """Search for relevant documents."""
     # Load documents
+    urls=[
+        "https://www.investopedia.com/personal-finance-4427760",
+        "https://www.investopedia.com/budgeting-and-savings-4427755",
+        "https://www.investopedia.com/personal-loans-4689729",
+        "https://www.investopedia.com/insurance-4427716",
+        "https://www.investopedia.com/mortgage-4689703"
+    ]
     loader = UnstructuredURLLoader(urls=urls)
     docs = loader.load()
     
     # Split documents
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=50)
     doc_splits = text_splitter.split_documents(docs)
-    
-
-    if (os.path.exists("./chroma_db")):
-        print("Loading existing vector store from disk...")
-        vectorstore = Chroma(
-            collection_name="python_docs",
-            embedding_function=OpenAIEmbeddings(),
-            persist_directory="./chroma_db"
-        )
-        return vectorstore
 
     # Create VectorStore
     print("Creating new vector store and persisting to disk...")
     vectorstore = Chroma.from_documents(
         documents=doc_splits,
-        collection_name="python_docs",
-        embedding=OpenAIEmbeddings(),
-        persist_directory="./chroma_db"
+        collection_name="finance_docs",
+        embedding=embeddings,
+        persist_directory="../data/chroma_db"
     )
 
     return vectorstore
 
-def invoke_retrieval(query: str, vectorstore: Chroma):
-    """Invoke retrieval for a given query."""
-    retriever = vectorstore.as_retriever()
-    results = retriever.invoke(query)
-    return "\n".join([doc.page_content for doc in results])
-
-
 vector_store = create_vector_store()
 
-print(invoke_retrieval("What is the best way to invest for retirement?", vector_store))
+while True:
+    q = input("Enter your query (or 'exit' to quit): ")
+    if q.lower() == 'exit':
+        break
+    print("Querying vector store...")
+    retriever = vector_store.as_retriever(
+    search_type="mmr", search_kwargs={"k": 1, "fetch_k": 5}
+    )
+    print(retriever.invoke(q))

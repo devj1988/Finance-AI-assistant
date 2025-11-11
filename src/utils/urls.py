@@ -1,0 +1,13 @@
+urls=[
+        "https://www.investopedia.com/personal-finance-4427760",
+        "https://www.investopedia.com/budgeting-and-savings-4427755",
+        "https://www.investopedia.com/personal-loans-4689729",
+        "https://www.investopedia.com/insurance-4427716",
+        "https://www.investopedia.com/mortgage-4689703",
+        "https://www.investopedia.com/credit-and-debt-4689724",
+        "https://www.investopedia.com/student-loans-4689727",
+        "https://www.investopedia.com/taxes-4427724",
+        "https://www.investopedia.com/credit-card-4689721",
+        "https://www.investopedia.com/financial-literacy-resource-center-7151950",
+        "https://www.investopedia.com/financial-literacy-resource-center-7151950"
+]

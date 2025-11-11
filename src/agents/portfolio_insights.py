@@ -3,15 +3,14 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from typing import Any, Dict
-from core.fin_tools import get_ticker_info
-from utils.constants import MODEL_NAME
+from fin_tools import enhance_portfolio_data
 from dotenv import load_dotenv
 
 load_dotenv()  # take environment variables from .env file
 
 # (1) Paste the Pydantic models above here
-from core.model import PortfolioInsights  # or inline them
-from utils.prompts import main_prompt
+from model import PortfolioInsights  # or inline them
+from prompts import main_prompt
 
 # (2) Create your model with structured output
 # llm = ChatOpenAI(
@@ -19,10 +18,10 @@ from utils.prompts import main_prompt
 #     temperature=0.1,
 # )
 
-llm = ChatGoogleGenerativeAI(model=MODEL_NAME)
+llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.0)
 
 
-llm_with_tools = llm.bind_tools([get_ticker_info])
+llm_with_tools = llm.bind_tools([enhance_portfolio_data])
 structured_llm = llm_with_tools.with_structured_output(PortfolioInsights)  # if using tools
 
 prompt = ChatPromptTemplate.from_messages(
@@ -35,28 +34,31 @@ prompt = ChatPromptTemplate.from_messages(
 {portfolio_json}
 
 Within this portfolio, is a list of holdings, each with a ticker symbol.
-Use the get_ticker_info tool to fetch information about any stock tickers in the portfolio to enhance your analysis.
+Use the enhance_portfolio_data tool to enhance the portfolio.
 
 User question or goal (if any):
 {user_goal}
 
-Analyze this portfolio and return ONLY valid JSON that matches the PortfolioInsights schema. Also, answer the user question or goal in the Summary section.
+Analyze this portfolio and return ONLY valid JSON that matches the PortfolioInsights schema.
+Also, answer the user question or goal in the Summary section.
 
 
 """,
         ),
-    ]
+    ],
 )
 
-chain = prompt | structured_llm
+agent = prompt | structured_llm
 
+def get_portfolio_insights_agent():
+    return agent
 
 def analyze_portfolio(portfolio: Dict[str, Any], user_goal: str = "") -> PortfolioInsights:
     """
     portfolio: your portfolio dict (same shape you’re sending to the LLM)
     user_goal: e.g. "Retire in ~20 years, moderate risk tolerance."
     """
-    return chain.invoke(
+    return agent.invoke(
         {
             "portfolio_json": portfolio,
             "user_goal": user_goal,
