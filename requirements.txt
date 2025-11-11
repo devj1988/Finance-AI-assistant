@@ -24,3 +24,4 @@ python-dotenv>=1.0.1
 streamlit==1.46.1
 unstructured>=0.7.0
 yfinance>=0.2.27
+matplotlib==3.8.2

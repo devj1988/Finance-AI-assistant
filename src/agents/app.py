@@ -5,6 +5,7 @@ import json
 # from agents.qa_agent_gemini import get_response
 from workflow import create_workflow
 from langchain_core.messages import HumanMessage
+import matplotlib.pyplot as plt
 
 app = create_workflow()
 
@@ -69,6 +70,18 @@ def display_analysis(analysis):
         st.write(analysis.disclaimer)
 
 
+def portfolio_pie_chart(portfolio):
+    # Prepare data
+    labels = [holding['ticker'] for holding in portfolio['holdings']]
+    sizes = [holding['weight_percent'] for holding in portfolio['holdings']]
+
+    # Create pie chart
+    fig, ax = plt.subplots()
+    ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+    ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
+    st.pyplot(fig)
+
 def handle_portfolio_insights():
     st.subheader("Example Portfolio JSON")
     st.json(simple_portfolio, expanded=False)
@@ -91,6 +104,8 @@ def handle_portfolio_insights():
                         "user_goal": user_goal,
                     }, {"configurable": {"thread_id": "1"}})
                     analysis = messages['messages'][-1]
+                    print("portfolio:", messages['portfolio_json'])
+                    portfolio_pie_chart(messages['portfolio_json'])
                     st.json(analysis, expanded=False)  # Display raw JSON output
                     display_analysis(analysis)
         except json.JSONDecodeError:
