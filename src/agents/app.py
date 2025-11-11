@@ -12,10 +12,6 @@ app = create_workflow()
 # Initialize Streamlit state
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "recording_duration" not in st.session_state:
-    st.session_state.recording_duration = 5
-if "mode" not in st.session_state:
-    st.session_state.mode = "customer_service"  # Default to customer service mode
 
 def display_analysis(analysis):
     st.subheader("Portfolio Analysis Results")
