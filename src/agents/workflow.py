@@ -39,6 +39,8 @@ def qa_agent_node(state: AssistantState):
     messages = state["messages"]
     response = qa_agent.invoke({"messages": messages})
 
+    print("QA agent response:", response)
+
     # Handle tool calls if present
     if hasattr(response, 'tool_calls') and response.tool_calls:
         tool_messages = []
@@ -58,6 +60,9 @@ def qa_agent_node(state: AssistantState):
         if tool_messages:
             all_messages = messages + [response] + tool_messages
             final_response = qa_agent.invoke({"messages": all_messages})
+            print("*"*40)
+            print("Final response after tool calls:", final_response)
+            print("*"*40)
             return {"messages": [response] + tool_messages + [final_response]}
 
     return {"messages": [response]}

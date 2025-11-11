@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import UnstructuredURLLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-import os
+import os, json
 # from utils import urls
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.tools import tool
@@ -33,6 +33,18 @@ def invoke_retrieval(query: str, retriever: any):
     results = retriever.invoke(query)
     ret = "\n".join([doc.page_content for doc in results])
     print("---- Retrieved documents ----")
+    print(f"Retrieved documents: {results}")
+    print("---- End of retrieved documents ----")
+    return ret
+
+def invoke_retrieval2(query: str, retriever: any):
+    """Invoke retrieval for a given query."""
+    print(f"Invoking retrieval for query: {query}")
+    results = retriever.invoke(query)
+    json_dict = [{ "source": doc.metadata['source'], "content":  doc.page_content } for doc in results]
+    print(json_dict)
+    ret = json.dumps(json_dict)
+    print("---- Retrieved documents ----")
     print(f"Retrieved documents: {ret}")
     print("---- End of retrieved documents ----")
     return ret
@@ -45,6 +57,6 @@ def retrieve_documents(query: str) -> str:
      """
      Retrieve finance related documents for a given query.
      """
-     return invoke_retrieval(query, retriever)
+     return invoke_retrieval2(query, retriever)
 
-# print(retrieve_documents("What is personal finance?"))
+print(retrieve_documents.invoke("What is personal finance?"))

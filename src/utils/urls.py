@@ -9,5 +9,52 @@ urls=[
         "https://www.investopedia.com/taxes-4427724",
         "https://www.investopedia.com/credit-card-4689721",
         "https://www.investopedia.com/financial-literacy-resource-center-7151950",
-        "https://www.investopedia.com/financial-literacy-resource-center-7151950"
+        "https://www.investopedia.com/articles/investing/052216/4-benefits-holding-stocks-long-term.asp",
+        "https://www.investopedia.com/terms/f/fixedincome.asp",
+        "https://www.investopedia.com/articles/investing/030116/portfolio-diversification-done-right.asp",
+        "https://www.investopedia.com/investing-in-index-funds-4771002",
+        "https://www.investopedia.com/ask/answers/08/find-stocks-in-sp500.asp",
+        "https://www.investopedia.com/articles/basics/03/060603.asp",
+        "https://www.investopedia.com/ask/answers/042415/what-average-annual-return-sp-500.asp",
+        "https://www.investopedia.com/cryptocurrency-4427699",
+        "https://www.investopedia.com/investing-in-cryptocurrency-5215269",
+        "https://www.investopedia.com/best-crypto-exchanges-5071855"
+        "https://www.investopedia.com/bitcoin-halving-4843769",
+        "https://www.investopedia.com/news/how-find-your-next-cryptocurrency-investment/",
+        "https://www.investopedia.com/cryptocurrency-regulations-around-the-world-5202122",
+        "https://www.investopedia.com/bonds-4689778",
+        "https://www.investopedia.com/articles/bonds/09/bond-market-interest-rates.asp",
+        "https://www.investopedia.com/articles/investing/062813/why-companies-issue-bonds.asp",
+        "https://www.investopedia.com/articles/bonds/09/inflation-linked-bonds.asp",
+        "https://www.investopedia.com/ask/answers/122414/what-difference-between-debenture-and-bond.asp"
+
+]
+
+boglehead_urls=[
+    "https://www.bogleheads.org/wiki/Bogleheads%C2%AE_investment_philosophy",
+    "https://en.wikipedia.org/wiki/Modern_portfolio_theory",
+    "https://www.bogleheads.org/wiki/CAPM_-_Capital_Asset_Pricing_Model",
+    "https://www.bogleheads.org/wiki/Tax-efficient_fund_placement"
+    "https://www.bogleheads.org/wiki/Household_budgeting",
+    "https://www.bogleheads.org/wiki/Living_below_your_means",
+    "https://www.bogleheads.org/wiki/Emergency_fund",
+    "https://www.bogleheads.org/wiki/Money_markets",
+    "https://www.bogleheads.org/wiki/Financial_planning",
+    "https://www.bogleheads.org/wiki/Importance_of_saving_early",
+    "https://www.bogleheads.org/wiki/Credit_cards",
+    "https://www.bogleheads.org/wiki/Debt_security",
+    "https://www.bogleheads.org/wiki/Risk_tolerance",
+    "https://www.bogleheads.org/wiki/Risk_and_return:_an_introduction",
+    "https://www.bogleheads.org/wiki/Stock_basics",
+    "https://www.bogleheads.org/wiki/Market_capitalization",
+    "https://www.bogleheads.org/wiki/Dividend",
+    "https://www.bogleheads.org/wiki/Asset_allocation",
+    "https://www.bogleheads.org/wiki/Bond_basics",
+    "https://www.bogleheads.org/wiki/Corporate_bonds",
+    "https://en.wikipedia.org/wiki/Benjamin_Graham",
+    "https://www.bogleheads.org/wiki/John_Bogle",
+    "https://www.bogleheads.org/wiki/Rebalancing",
+    "https://www.bogleheads.org/wiki/Lazy_portfolios",
+    "https://www.bogleheads.org/wiki/Mutual_funds_and_fees",
+    "https://www.bogleheads.org/wiki/Expense_ratios"    
 ]

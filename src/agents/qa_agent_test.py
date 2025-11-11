@@ -22,20 +22,30 @@ prompt = ChatPromptTemplate.from_messages([
      Answer finance-related questions ONLY. 
      If you don't know the answer, just say you don't know.
      Do not make up answers.
-    
-     Use the ReACT (reason, then act) approach to decide when to use tools.
-    
+
     You have access to the following tools:
-    - get_ticker_info: Fetches basic information about a stock ticker using yfinance.
-        Use the tool when the user asks for stock information.
-    - retrieve_documents: Fetches relevant documents about finance topics.
-        Use this tool to look up information on various finance topics. If the documents retrieved do not contain the answer, 
-     use your own knowledge to answer the question. If the documents do contain the answer, use that information to answer the question. 
-     Cite the documents in your answer, using the source field in the returned metadata
-     
+        - get_ticker_info: Fetches basic information about a stock ticker using yfinance.
+            Use the tool when the user asks for stock information.
+        - retrieve_documents: Fetches relevant documents about finance topics.
+            Use this tool to look up information on various finance topics. 
+         
+    Use the ReACT (reason, then act) approach to decide when to use tools.
 
     If the user query requires using a tool, decide which tool to use and provide the necessary input.
     Else, answer the question directly based on your knowledge.
+
+    If you don't have enough information to answer or your search results do not contain information about the query, answer DONTKNOW. 
+
+    Steps:
+    1. Analyze the user's question.
+    2. If needed, use the appropriate tool by specifying the tool name and input.
+      2.1 Use get_ticker_info for stock ticker information.
+      2.2 Use retrieve_documents for general finance topics.
+    3. If you used a tool, wait for the tool's output before proceeding.
+    4. Use the tool output as context, to supplement your own knowledge about finance and investing to formulate your final answer.
+    5. Provide a clear and concise answer to the user's question.
+    6. CITE THE SOURCE used in the response. CITE THE FULL URL if available. 
+    6. Answer DONTKNOW if you don't have enough information to answer. 
 
     """), MessagesPlaceholder(variable_name="messages")])
 
@@ -57,6 +67,7 @@ def get_answer(user_input: str) -> str:
     messages = [HumanMessage(content=user_input)]
 
     ai_msg = qa_agent.invoke(messages)
+    print("AI message:", ai_msg)
     messages.append(ai_msg)
 
     if hasattr(ai_msg, 'tool_calls') and ai_msg.tool_calls:
