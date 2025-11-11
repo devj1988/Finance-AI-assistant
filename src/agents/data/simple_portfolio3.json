@@ -1,0 +1,37 @@
+{
+        "base_currency": "USD",
+        "holdings": [
+        {
+                "ticker": "VGT",
+                "current_value": 25000
+            },
+            {
+                "ticker": "VOO",
+                "current_value": 15000
+            },
+            {
+                "ticker": "AAPL",
+                "current_value": 7000
+            },
+            {
+                "ticker": "MSFT",
+                "current_value": 8000
+            },
+            {
+                "ticker": "GOOGL",
+                "current_value": 9000
+            },          
+            {
+                "ticker": "AMZN",
+                "current_value": 3000
+            },
+            {
+                "ticker": "CLS",
+                "current_value": 3000
+            },
+            {
+                "ticker": "APP",
+                "current_value": 4000
+            }
+        ]
+}
