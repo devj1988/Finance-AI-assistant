@@ -1,7 +1,6 @@
 from typing import TypedDict, Annotated, List, Optional
 import operator
 from langchain_core.messages import BaseMessage
-from langchain_core.messages import ToolMessage, HumanMessage
 from fin_tools import get_ticker_info, enhance_portfolio_data, yf_snapshot
 from retrieval_tool import retrieve_documents
 from qa_agent_test import get_qa_agent
@@ -9,8 +8,8 @@ from portfolio_insights import get_portfolio_insights_agent
 from market_trends import get_market_trends_agent
 from goal_planning import get_goal_planning_agent
 import json
-from model import GoalPlanResult, MarketInsightsResult
-from langgraph.graph import StateGraph, END, START
+from model import GoalPlanResult
+from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import InMemorySaver
 from cachetools import TTLCache
 from IPython.display import Image
