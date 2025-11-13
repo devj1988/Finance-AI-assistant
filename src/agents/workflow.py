@@ -7,11 +7,13 @@ from retrieval_tool import retrieve_documents
 from qa_agent_test import get_qa_agent
 from portfolio_insights import get_portfolio_insights_agent
 from market_trends import get_market_trends_agent
+from goal_planning import get_goal_planning_agent
 import json
-from model import PortfolioInsights
+from model import GoalPlanResult, MarketInsightsResult
 from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.memory import InMemorySaver
 from cachetools import TTLCache
+
 
 class MarketTrendsState(TypedDict):
     """State schema for market trends agent"""
@@ -19,6 +21,8 @@ class MarketTrendsState(TypedDict):
     ticker_6mo_price_history: Optional[dict]
 
     news: Optional[list]
+
+    market_trends: Optional[MarketInsightsResult]
 
 class AssistantState(TypedDict):
     """Simple state schema for multiagent system"""
@@ -32,6 +36,8 @@ class AssistantState(TypedDict):
 
     portfolio_json: Optional[dict]
 
+    goal_plan_inputs: Optional[dict]
+
     # Agent routing
     next_agent: Optional[str]
 
@@ -40,12 +46,53 @@ class AssistantState(TypedDict):
 
     market_trends_agent_tools_out: Optional[MarketTrendsState]
 
+    goal_planning_output: Optional[GoalPlanResult]
+
 
 qa_agent = get_qa_agent()
 
 portfolio_agent = get_portfolio_insights_agent()
 
 market_trends_agent = get_market_trends_agent()
+
+goal_planning_agent = get_goal_planning_agent()
+
+goal_planning_agent_cache = TTLCache(maxsize=100, ttl=3600) 
+
+def get_key_for_goal_plan_inputs(inputs: dict) -> str:
+    s = "|".join([
+        str(inputs.get("goal_type", "")),
+        str(inputs.get("goal_target_amount", "")),
+        str(inputs.get("goal_target_horizon", "")),
+        str(inputs.get("current_net_worth", "")),
+        str(inputs.get("risk_tolerance", "")),
+        str(inputs.get("current_age", "")),
+        str(inputs.get("annual_income", "")),
+        str(inputs.get("monthly_expenses", "")),
+        str(inputs.get("monthly_savings", ""))
+    ])
+    print("Generated hash for goal planning inputs:", hash(s))
+    return str(hash(s))
+
+def goal_planning_agent_node(state: AssistantState):
+    """Goal planning agent node"""
+    print("Invoking goal planning agent...")
+    # print("goal_plan_inputs:", state["goal_plan_inputs"])
+
+    key = get_key_for_goal_plan_inputs(state["goal_plan_inputs"])
+    print("Generated key for goal planning inputs:", key)
+
+    if key in goal_planning_agent_cache:
+        print("Using cached goal planning for key:", key)
+        return goal_planning_agent_cache[key]
+
+    response = goal_planning_agent.invoke({
+            **state["goal_plan_inputs"],
+        })
+    # print(response)
+    ret = {"goal_planning_output": response}
+    goal_planning_agent_cache[key] = ret
+    return ret
 
 # Agent node functions
 def qa_agent_node(state: AssistantState):
@@ -98,7 +145,9 @@ def market_trends_agent_node(state: AssistantState):
     response = market_trends_agent.invoke({
             "messages": messages,
             "ticker": ticker,
-        })
+    })
+
+    print("Market trends agent response initial:", response)
 
     # Handle tool calls if present
     if hasattr(response, 'tool_calls') and response.tool_calls:
@@ -138,7 +187,9 @@ def market_trends_agent_node(state: AssistantState):
             ret = {"messages": [response] + tool_messages + [final_response],
                    "market_trends_agent_tools_out": MarketTrendsState(
                        ticker_6mo_price_history=ticker_6mo_price_history,
-                       news=news)}
+                       news=news
+                   )
+               }
     else:
         ret = {"messages": [response]}
 
@@ -230,6 +281,20 @@ def route_to_agent(state: AssistantState):
     else:
         # Default fallback
         return "qa_agent"
+    
+
+from IPython.display import Image
+import io
+from PIL import Image as PILImage # Alias to avoid name collision
+
+
+def save_ipython_image(img_display: Image, filename: str):
+    """Saves an IPython display Image to a file using Pillow."""
+    # Assume 'img_display' is an IPython.core.display.Image object
+    # Read the image data and save it using Pillow
+    pimg = PILImage.open(io.BytesIO(img_display.data))
+    pimg.save(filename)
+
 
 def create_workflow():
     checkpointer = InMemorySaver()
@@ -240,6 +305,7 @@ def create_workflow():
     workflow.add_node("portfolio_agent", portfolio_agent_node)
     workflow.add_node("portfolio_enhance", portfolio_enhance_node)
     workflow.add_node("market_trends_agent", market_trends_agent_node)
+    workflow.add_node("goals_planning_agent", goal_planning_agent_node)
     workflow.add_node("qa_agent", qa_agent_node)
 
     workflow.set_entry_point("router")
@@ -251,16 +317,23 @@ def create_workflow():
             "qa_agent": "qa_agent",
             "portfolio_enhance": "portfolio_enhance",
             "market_trends_agent": "market_trends_agent",
-            # "goals_planning_agent": "goals_planning_agent"
+            "goals_planning_agent": "goals_planning_agent"
         }
     )
 
     workflow.add_edge("portfolio_enhance", "portfolio_agent")
-    workflow.add_edge("portfolio_enhance", END)
+    workflow.add_edge("market_trends_agent", END)
+    workflow.add_edge("goals_planning_agent", END)
+    workflow.add_edge("portfolio_agent", END)
     workflow.add_edge("qa_agent", END)
 
     app = workflow.compile(checkpointer=checkpointer)
+
+    # save_ipython_image(Image(app.get_graph().draw_mermaid_png()), "workflow_graph.png")
+
     return app
+
+create_workflow()
 
 
 # sample_portfolio = {

@@ -35,6 +35,7 @@ def get_ticker_info(ticker: str) -> Dict[str, Any]:
             "open": info.get("open", "N/A"),
             "dayHigh": info.get("dayHigh", "N/A"),
             "dayLow": info.get("dayLow", "N/A"),
+            "news": stock.news
         }
     except Exception as e:
         return {"error": str(e)}
@@ -56,16 +57,30 @@ def yf_snapshot(ticker: str) -> dict:
     t = yf.Ticker(ticker)
     info = t.get_info() if hasattr(t, "get_info") else t.info
     history = t.history(period="6mo", interval="1d").tail(120).reset_index().to_dict(orient="list")
+    history_formatted = prepare_history_data(history)
     fast = getattr(t, "fast_info", {})
     out = {
         # "ticker": ticker.upper(),
         # "info": info,
         # "fast_info": dict(fast) if fast is not None else {},
-        "history_6m": history,
+        "history_6m": history_formatted,
     }
+    print("yf_snapshot output:", out)
     return out
 
-def plot_price_history(history_data: dict, ticker: str = "Stock", show_volume: bool = False):
+def prepare_history_data(history):
+    history_formatted = {}
+    for key, value in history.items():
+        if key != "Date":
+            history_formatted[key] = value
+        else:
+            print(type(value))
+            print([v.date().strftime("%Y-%m-%d") for v in value])
+            new_value = [v.date().strftime("%Y-%m-%d") if hasattr(v, 'date') else v for v in value]
+            history_formatted[key] = new_value
+    return history_formatted
+
+def plot_price_history(history_data: dict, ticker: str = "Stock", show_volume: bool = True):
     """
     Creates a matplotlib chart from 6-month history data.
     
@@ -87,9 +102,10 @@ def plot_price_history(history_data: dict, ticker: str = "Stock", show_volume: b
         return
     
     # Convert dates to datetime objects if they're not already
-    if dates and hasattr(dates[0], 'date'):
-        dates = [d.date() if hasattr(d, 'date') else d for d in dates]
-    
+    if dates:
+        # dates = [d.date() if hasattr(d, 'date') else d for d in dates]
+        dates = [datetime.strptime(d, "%Y-%m-%d") if isinstance(d, str) else d for d in dates]
+
     # Create the plot
     if show_volume and volumes:
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), height_ratios=[3, 1])
@@ -152,4 +168,6 @@ def plot_snapshot_chart(ticker: str, show_volume: bool = False):
 # print("AAPL 6 month history sample:", history_6m['Close'][-1])
 # print("AAPL 6 month history sample dates:", history_6m['Date'][-1].date())
 
-plot_snapshot_chart
+# plot_snapshot_chart("AAPL", show_volume=True)
+
+print("AAPL ticker info:", get_ticker_info("AAPL"))

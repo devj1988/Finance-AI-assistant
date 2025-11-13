@@ -3,7 +3,13 @@ from langchain.agents.middleware import wrap_tool_call
 from langchain_core.messages import ToolMessage
 import yfinance as yf
 import json
+import cachetools
 
+
+@cachetools.cached(cache=cachetools.TTLCache(maxsize=128, ttl=300))
+def get_ticker_info_cached(ticker: str) -> str:
+    """Cached version of get_ticker_info to avoid redundant API calls."""
+    return yf.Ticker(ticker)
 
 @tool
 def get_ticker_info(ticker: str) -> str:
@@ -14,7 +20,7 @@ def get_ticker_info(ticker: str) -> str:
     """
     print("Fetching info for ticker:", ticker)
     try:
-        stock = yf.Ticker(ticker)
+        stock = get_ticker_info_cached(ticker)
         return json.dumps(stock.info, default=str)
     except Exception as e:
         return json.dumps({"error": str(e)})
@@ -33,12 +39,23 @@ def filter_news(news_list, company_name, ticker):
             })
     return filtered
 
+def prepare_history_data(history):
+    history_formatted = {}
+    for key, value in history.items():
+        if key != "Date":
+            history_formatted[key] = value
+        else:
+            print(type(value))
+            print([v.date().strftime("%Y-%m-%d") for v in value])
+            new_value = [v.date().strftime("%Y-%m-%d") if hasattr(v, 'date') else v for v in value]
+            history_formatted[key] = new_value
+    return history_formatted
 
 @tool
 def yf_snapshot(ticker: str) -> dict:
     """Return a combined yfinance snapshot for a given ticker."""
     print("Fetching yf_snapshot for ticker:", ticker)
-    t = yf.Ticker(ticker)
+    t = get_ticker_info_cached(ticker)
     info = t.get_info() if hasattr(t, "get_info") else t.info
     history = t.history(period="6mo", interval="1d").tail(120).reset_index().to_dict(orient="list")
     fast = getattr(t, "fast_info", {})
@@ -47,7 +64,7 @@ def yf_snapshot(ticker: str) -> dict:
         "ticker": ticker.upper(),
         "info": info,
         "fast_info": dict(fast) if fast is not None else {},
-        # "history_6m": history,
+        "history_6m": prepare_history_data(history),
         "news": news
     }
     return out

@@ -31,19 +31,19 @@ prompt = ChatPromptTemplate.from_messages(
             "user",
             """Here is the user's portfolio and context as JSON:
 
-{portfolio_json}
+            {portfolio_json}
 
-Within this portfolio, is a list of holdings, each with a ticker symbol.
-Use the enhance_portfolio_data tool to enhance the portfolio.
+            Within this portfolio, is a list of holdings, each with a ticker symbol.
+            Use the enhance_portfolio_data tool to enhance the portfolio.
 
-User question or goal (if any):
-{user_goal}
+            User question or goal (if any):
+            {user_goal}
 
-Analyze this portfolio and return ONLY valid JSON that matches the PortfolioInsights schema.
-Also, answer the user question or goal in the Summary section.
+            Analyze this portfolio and return ONLY valid JSON that matches the PortfolioInsights schema.
+            Also, answer the user question or goal in the Summary section.
 
 
-""",
+            """,
         ),
     ],
 )

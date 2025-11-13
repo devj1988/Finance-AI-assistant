@@ -15,13 +15,15 @@ embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
 from langchain_chroma import Chroma
 
+VECTOR_STORE_PATH="./data/boglehead_chroma_db-nov-11-2024"
+
 def get_vector_store():
-    if (os.path.exists("./data/chroma_db")):
+    if (os.path.exists(VECTOR_STORE_PATH)):
         print("Loading existing vector store from disk...")
         vectorstore = Chroma(
             collection_name="finance_docs",
             embedding_function=embeddings,
-            persist_directory="./data/chroma_db"
+            persist_directory=VECTOR_STORE_PATH
         )
         return vectorstore
     else:

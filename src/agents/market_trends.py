@@ -11,7 +11,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 load_dotenv()  # take environment variables from .env file
 
-from model import PortfolioInsights  # or inline them
+from model import MarketInsightsResult, PortfolioInsights  # or inline them
 
 system_prompt = """
 You are a Financial Market Insights AI Agent.
@@ -107,6 +107,9 @@ llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.0)
 
 
 llm_with_tools = llm.bind_tools([yf_snapshot])
+# structured_llm = llm_with_tools.with_structured_output(MarketInsightsResult)  # if using tools
+
+from prompts import market_trends_system_prompt
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -114,17 +117,15 @@ prompt = ChatPromptTemplate.from_messages(
         (
             "user",
             """
-            Here is the ticker the user is interested in:
-
-            {ticker}
+            Here is the ticker the user is interested in: {ticker}
 
             Use the yf_snapshot tool to fetch data from yfinance for this ticker.
             Then, analyze the data and produce structured market insights as per the specified sections.
 
             """,
         ),
-         MessagesPlaceholder(variable_name="messages")
-    ],
+     MessagesPlaceholder(variable_name="messages")
+    ]
 )
 
 agent = prompt | llm_with_tools
@@ -134,16 +135,11 @@ def get_market_trends_agent():
 
 def get_market_trends_for_ticker(ticker: str) -> str:
     """
-    portfolio: your portfolio dict (same shape you’re sending to the LLM)
-    user_goal: e.g. "Retire in ~20 years, moderate risk tolerance."
+    ticker: stock ticker symbol, e.g. "AAPL"
     """
     print("Getting market trends for ticker:", ticker)
-    ret = agent.invoke(
-        {
-            "ticker": ticker,
-        }
-    )
-    print(ret)
+    ret = agent.invoke({"ticker": ticker})
+    # ret = agent.invoke({})
     return ret
 
 # Example usage
