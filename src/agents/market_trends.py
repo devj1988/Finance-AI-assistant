@@ -109,8 +109,6 @@ llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.0)
 llm_with_tools = llm.bind_tools([yf_snapshot])
 # structured_llm = llm_with_tools.with_structured_output(MarketInsightsResult)  # if using tools
 
-from prompts import market_trends_system_prompt
-
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),

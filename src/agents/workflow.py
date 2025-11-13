@@ -13,7 +13,9 @@ from model import GoalPlanResult, MarketInsightsResult
 from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.memory import InMemorySaver
 from cachetools import TTLCache
-
+from IPython.display import Image
+import io
+from PIL import Image as PILImage # Alias to avoid name collision
 
 class MarketTrendsState(TypedDict):
     """State schema for market trends agent"""
@@ -22,7 +24,6 @@ class MarketTrendsState(TypedDict):
 
     news: Optional[list]
 
-    market_trends: Optional[MarketInsightsResult]
 
 class AssistantState(TypedDict):
     """Simple state schema for multiagent system"""
@@ -47,9 +48,6 @@ class AssistantState(TypedDict):
     market_trends_agent_tools_out: Optional[MarketTrendsState]
 
     goal_planning_output: Optional[GoalPlanResult]
-
-
-qa_agent = get_qa_agent()
 
 portfolio_agent = get_portfolio_insights_agent()
 
@@ -93,9 +91,6 @@ def goal_planning_agent_node(state: AssistantState):
     ret = {"goal_planning_output": response}
     goal_planning_agent_cache[key] = ret
     return ret
-
-# Agent node functions
-def qa_agent_node(state: AssistantState):
     """QA agent node"""
     print("Invoking QA agent...")
     messages = state["messages"]
@@ -165,14 +160,20 @@ def market_trends_agent_node(state: AssistantState):
                     tool_result = tool_map[tool_call['name']].invoke(tool_call)
                     print(tool_result)
                     if tool_call['name'] == "yf_snapshot" and tool_result:
-                        # Store 6 month price history in state
-                        # print("tool_result from yf_snapshot:", tool_result)
+                        # Extracting relevant info from yf_snapshot tool result for use in UI
                         content_json = json.loads(tool_result.content)
                         print("Extracted ticker:", content_json.get('ticker'))
                         ticker_6mo_price_history = content_json.get("history_6m", {})
                         news = content_json.get("news", [])
                         print("Extracted news articles:", news)
-                        # tool_result.pop("history_6m", None)
+
+                        # add only relevant info to tool_result content to avoid exploding the context
+                        tool_result.content = json.dumps(
+                            {
+                                "ticker": content_json.get('ticker'),
+                                "info": content_json.get("info", {}),
+                            }
+                        )
                 except Exception as e:
                     tool_result = f"Search failed: {str(e)}"
                 finally:
@@ -251,15 +252,13 @@ def router_node(state: AssistantState):
     """Router node - determines which agent should handle the query"""
     context = state.get("context", "qa")
     print(f"Routing to {context} agent...")
-    next_agent = "qa_agent"
+    next_agent = ""
     if context == "market_trends":
         next_agent = "market_trends_agent"
     elif context == "portfolio":
         next_agent = "portfolio_enhance"
     elif context == "goals_planning":
         next_agent = "goals_planning_agent"
-    else:
-        next_agent = "qa_agent"
 
     return {
         "next_agent": next_agent
@@ -270,9 +269,7 @@ def route_to_agent(state: AssistantState):
 
     next_agent = state.get("next_agent")
 
-    if next_agent == "qa_agent":
-        return "qa_agent"
-    elif next_agent == "portfolio_enhance":
+    if next_agent == "portfolio_enhance":
         return "portfolio_enhance"
     elif next_agent == "market_trends_agent":
         return "market_trends_agent"
@@ -280,13 +277,7 @@ def route_to_agent(state: AssistantState):
         return "goals_planning_agent"
     else:
         # Default fallback
-        return "qa_agent"
-    
-
-from IPython.display import Image
-import io
-from PIL import Image as PILImage # Alias to avoid name collision
-
+        return "error"
 
 def save_ipython_image(img_display: Image, filename: str):
     """Saves an IPython display Image to a file using Pillow."""
@@ -296,7 +287,7 @@ def save_ipython_image(img_display: Image, filename: str):
     pimg.save(filename)
 
 
-def create_workflow():
+def create_workflow(save_graph: bool = False):
     checkpointer = InMemorySaver()
 
     workflow = StateGraph(AssistantState)
@@ -306,7 +297,6 @@ def create_workflow():
     workflow.add_node("portfolio_enhance", portfolio_enhance_node)
     workflow.add_node("market_trends_agent", market_trends_agent_node)
     workflow.add_node("goals_planning_agent", goal_planning_agent_node)
-    workflow.add_node("qa_agent", qa_agent_node)
 
     workflow.set_entry_point("router")
 
@@ -314,7 +304,6 @@ def create_workflow():
         "router",
         route_to_agent,
         {
-            "qa_agent": "qa_agent",
             "portfolio_enhance": "portfolio_enhance",
             "market_trends_agent": "market_trends_agent",
             "goals_planning_agent": "goals_planning_agent"
@@ -325,64 +314,11 @@ def create_workflow():
     workflow.add_edge("market_trends_agent", END)
     workflow.add_edge("goals_planning_agent", END)
     workflow.add_edge("portfolio_agent", END)
-    workflow.add_edge("qa_agent", END)
 
     app = workflow.compile(checkpointer=checkpointer)
 
-    # save_ipython_image(Image(app.get_graph().draw_mermaid_png()), "workflow_graph.png")
+    if save_graph:
+        save_ipython_image(Image(app.get_graph().draw_mermaid_png()), "workflow_graph.png")
 
     return app
 
-create_workflow()
-
-
-# sample_portfolio = {
-#         "base_currency": "USD",
-#         "horizon_years": 15,
-#         "risk_tolerance": "moderate",
-#         "holdings": [
-#             {
-#                 "ticker": "VTI",
-#                 "name": "Vanguard Total Stock Market ETF",
-#                 "asset_class": "Equity",
-#                 "region": "US",
-#                 "sector": "Broad Market",
-#                 "weight_percent": 50.0,
-#                 "current_value": 25000,
-#             },
-#             {
-#                 "ticker": "BND",
-#                 "name": "Vanguard Total Bond Market ETF",
-#                 "asset_class": "Bond",
-#                 "region": "US",
-#                 "sector": "Bonds",
-#                 "weight_percent": 30.0,
-#                 "current_value": 15000,
-#             },
-#             {
-#                 "ticker": "VXUS",
-#                 "name": "Vanguard Total International Stock ETF",
-#                 "asset_class": "Equity",
-#                 "region": "International",
-#                 "sector": "Broad Market",
-#                 "weight_percent": 20.0,
-#                 "current_value": 10000,
-#             },
-#         ],
-#     }
-
-# app = create_workflow()
-
-# messages = app.invoke({
-#     "messages": [HumanMessage(content="What is budgeting?")],
-#     "next_agent": "",
-#     "context": "portfolio",
-#     "portfolio_json": sample_portfolio,
-#     "user_goal": "Optimize for long-term growth."
-# }, 
-# {"configurable": {"thread_id": "1"}}
-# )
-
-# print(messages['messages'][-1])
-# print(isinstance(messages['messages'][-1], BaseMessage))
-# print(isinstance(messages['messages'][-1], PortfolioInsights))

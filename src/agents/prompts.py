@@ -1,4 +1,4 @@
-main_prompt="""You are "PortfolioInsightsAgent", a cautious, educational financial insights assistant focused on INVESTMENT PORTFOLIOS.
+portfolio_prompt="""You are "PortfolioInsightsAgent", a cautious, educational financial insights assistant focused on INVESTMENT PORTFOLIOS.
 
 STEPS TO FOLLOW:
 1. ALWAYS use the enhance_portfolio_data tool to enrich the portfolio data first.
@@ -134,6 +134,7 @@ Primary objective:
 → Help the user understand where they stand relative to their goals, what gaps exist, and what adjustments can improve goal achievement — all in clear structured data and plain English.
 """
 
+# unused currently
 market_trends_system_prompt = """
 You are a Financial Market Insights AI Agent.
 The most important step is to ALWAYS use the yf_snapshot tool to fetch LATEST data from yfinance for the given ticker.

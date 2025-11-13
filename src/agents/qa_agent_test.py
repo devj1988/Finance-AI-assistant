@@ -118,37 +118,8 @@ from langchain_core.messages import BaseMessage
 class AgentState(TypedDict):
     # Conversation history - persisted with checkpoint memory
     messages: Annotated[List[BaseMessage], operator.add]
-
-
-def call_model(state: AgentState):
-    query = state["messages"][-1].content
-    print("Invoking QA agent with query:", query)
-    messages = [HumanMessage(content=query)]
-    ai_msg = qa_agent.invoke(messages)
-    print("AI message:", ai_msg)
-    messages.append(ai_msg)
-
-    if hasattr(ai_msg, 'tool_calls') and ai_msg.tool_calls:
-    # Check the tool calls in the response
-        print(ai_msg.tool_calls)
-        tool_map = {
-            "get_ticker_info": get_ticker_info,
-            "retrieve_documents": retrieve_documents,
-        }
-        # Step 2: Execute tools and collect results
-        for tool_call in ai_msg.tool_calls:
-            # Execute the tool with the generated arguments
-            tool_result = tool_map[tool_call['name']].invoke(tool_call)
-            messages.append(tool_result)
-
-    # Step 3: Pass results back to model for final response
-        final_response = qa_agent.invoke(messages)
-        messages.append(final_response)
-        return final_response
-    else:
-        return ai_msg
     
-def call_model2(state: AgentState):
+def call_model(state: AgentState):
     """Itinerary planning agent node"""
     print("Invoking QA agent...")
     messages = state["messages"]
@@ -185,7 +156,7 @@ def call_model2(state: AgentState):
 checkpointer = InMemorySaver()
 
 workflow = StateGraph(AgentState)
-workflow.add_node("agent", call_model2)
+workflow.add_node("agent", call_model)
 workflow.add_edge("agent", END) # Simple graph, transitions to END after model call
 workflow.add_edge(START, "agent")
 

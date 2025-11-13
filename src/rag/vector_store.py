@@ -11,6 +11,7 @@ from urls import urls, boglehead_urls
 from uuid import uuid4
 from langchain_core.documents import Document
 import time
+import chromadb
 
 load_dotenv()  # take environment variables from .env file
 
@@ -24,21 +25,6 @@ embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 VECTOR_STORE_PATH = "../data/boglehead_chroma_db-nov-11-2024" 
 COLLECTION_NAME = "finance_docs"
 
-# all_urls=[
-#         "https://www.investopedia.com/personal-finance-4427760",
-#         "https://www.investopedia.com/budgeting-and-savings-4427755",
-#         "https://www.investopedia.com/personal-loans-4689729",
-#         "https://www.investopedia.com/insurance-4427716",
-#         "https://www.investopedia.com/mortgage-4689703",
-#         "https://www.investopedia.com/credit-and-debt-4689724",
-#         "https://www.investopedia.com/student-loans-4689727",
-#         "https://www.investopedia.com/taxes-4427724",
-#         "https://www.investopedia.com/credit-card-4689721",
-#         "https://www.investopedia.com/financial-literacy-resource-center-7151950",
-#         "https://www.investopedia.com/financial-literacy-resource-center-7151950"
-#     ]
-
-
 def get_vector_store(dbpath, collection_name):
     vector_store = Chroma(
         collection_name=collection_name,
@@ -47,25 +33,9 @@ def get_vector_store(dbpath, collection_name):
     )
 
     return vector_store
-    
-    document_10 = Document(
-        page_content="I have a bad feeling I am going to get deleted :(",
-        metadata={"source": "tweet"},
-        id=10,
-    )
-
-    documents = [
-        document_10,
-    ]
-    uuids = [str(uuid4()) for _ in range(len(documents))]
-
-    vector_store.add_documents(documents=documents, ids=uuids)
-
-# get_vector_store()
 
 def count_documents(dbpath, collection_name):
     """Count documents in the Chroma collection."""
-    import chromadb
 
     client = chromadb.Client()
     client = chromadb.PersistentClient(path=dbpath)
@@ -137,19 +107,6 @@ def load_doc_from_url(urls):
     loader = UnstructuredURLLoader(urls=urls, headers=headers)
     docs = loader.load()
     return docs
-
-    # Create VectorStore
-    # print("Creating new vector store and persisting to disk...")
-    # vectorstore = Chroma.from_documents(
-    #     documents=doc_splits,
-    #     collection_name=COLLECTION_NAME,
-    #     embedding=embeddings,
-    #     persist_directory=VECTOR_STORE_PATH
-    # )
-
-    # return vectorstore
-
-# vector_store = create_vector_store()
 
 def query_vector_store():
     while True:

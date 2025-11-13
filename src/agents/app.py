@@ -315,7 +315,7 @@ def handle_market_trends():
 
     if st.button("Get Market Trends"):
         if ticker:
-            with st.spinner(f"Fetching market trends for {ticker}..."):
+            with st.spinner(f"Fetching market trends for {ticker}...", show_time=True):
                 # insights = market_trends.get_market_trends_for_ticker(ticker)
                 messages = app.invoke({
                                 "context": "market_trends",
@@ -363,7 +363,7 @@ def handle_portfolio_insights():
 
             user_goal = st.text_input("Add an optional question/goal for your portfolio")
             if st.button("Analyze Portfolio"):
-                with st.spinner("Analyzing portfolio..."):
+                with st.spinner("Analyzing portfolio...", show_time=True):
                     # analysis = portfolio_insights.analyze_portfolio(portfolio, user_goal)
                     messages = app.invoke({
                         "context": "portfolio",
@@ -585,7 +585,7 @@ def handle_goal_planning():
         if not success:
             st.error(f"Input validation error: {error_msg}")
         else:
-            with st.spinner("Planning your financial goal..."):
+            with st.spinner("Planning your financial goal...", show_time=True):
                 messages = app.invoke(
                     {
                         "context": "goals_planning",
@@ -635,17 +635,9 @@ def main():
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": prompt})
 
-            # response = f"Echo: {prompt}"
-            response = get_response(prompt)
-            # messages = app.invoke({
-            #         "messages": [HumanMessage(content=prompt)],
-            #         "next_agent": "",
-            #         "context": "qa",
-            #         }, 
-            #     {"configurable": {"thread_id": "1"}}
-            #     )
-            # response = messages['messages'][-1].content
-            # Display assistant response in chat message container
+            response = None
+            with st.spinner("Getting response...", show_time=True):
+                response = get_response(prompt)
             with st.chat_message("assistant"):
                 st.markdown(response)
             # Add assistant response to chat history

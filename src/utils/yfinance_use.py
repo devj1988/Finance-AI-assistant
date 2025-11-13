@@ -1,3 +1,5 @@
+# for yfinance usage examples and utilities
+
 import yfinance as yf
 import pprint
 import matplotlib.pyplot as plt
