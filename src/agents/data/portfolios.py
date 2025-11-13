@@ -38,12 +38,10 @@ simple_portfolio = {
         "holdings": [
             {
                 "ticker": "NVDA",
-                "weight_percent": 60.0,
                 "current_value": 25000
             },
             {
                 "ticker": "VOO",
-                "weight_percent": 40.0,
                 "current_value": 15000
             }
         ]

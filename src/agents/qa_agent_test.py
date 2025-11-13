@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from retrieval_tool import retrieve_documents
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from fin_tools import get_ticker_info
+from langgraph.graph import StateGraph, MessagesState, START, END
+from langgraph.checkpoint.memory import InMemorySaver
 
 import sys
 sys.path.append('../')
@@ -34,8 +36,6 @@ prompt = ChatPromptTemplate.from_messages([
     If the user query requires using a tool, decide which tool to use and provide the necessary input.
     Else, answer the question directly based on your knowledge.
 
-    If you don't have enough information to answer or your search results do not contain information about the query, answer DONTKNOW. 
-
     Steps:
     1. Analyze the user's question.
     2. If needed, use the appropriate tool by specifying the tool name and input.
@@ -44,8 +44,8 @@ prompt = ChatPromptTemplate.from_messages([
     3. If you used a tool, wait for the tool's output before proceeding.
     4. Use the tool output as context, to supplement your own knowledge about finance and investing to formulate your final answer.
     5. Provide a clear and concise answer to the user's question.
-    6. CITE THE SOURCE used in the response. CITE THE FULL URL if available. 
-    6. Answer DONTKNOW if you don't have enough information to answer. 
+    6. CITE THE FULL URL of the source. Cite yahoo finance for ticker info.
+    7. If the user question is outside the finance domain, politely refuse to answer.
 
     """), MessagesPlaceholder(variable_name="messages")])
 
@@ -66,6 +66,64 @@ messages = []
 def get_answer(user_input: str) -> str:
     messages = [HumanMessage(content=user_input)]
 
+    ai_msg = qa_agent.invoke(messages, {"configurable": {"thread_id": "1"}})
+    print("AI message:", ai_msg)
+    messages.append(ai_msg)
+
+    if hasattr(ai_msg, 'tool_calls') and ai_msg.tool_calls:
+    # Check the tool calls in the response
+        print(ai_msg.tool_calls)
+        tool_map = {
+            "get_ticker_info": get_ticker_info,
+            "retrieve_documents": retrieve_documents,
+        }
+        # Step 2: Execute tools and collect results
+        for tool_call in ai_msg.tool_calls:
+            # Execute the tool with the generated arguments
+            tool_result = tool_map[tool_call['name']].invoke(tool_call)
+            messages.append(tool_result)
+
+    # Step 3: Pass results back to model for final response
+        final_response = qa_agent.invoke(messages, {"configurable": {"thread_id": "1"}})
+        messages.append(final_response)
+        return final_response.content
+    else:
+        return ai_msg.content
+
+
+
+# def get_response(user_input: str, thread_id: int) -> str:
+#     config = {"configurable": {"thread_id": thread_id}}
+#     input_message = HumanMessage(content=user_input)
+#     result = agent.invoke({"messages": [input_message]})
+#     return result["messages"][-1].content
+
+
+# print(get_answer("What is DCA in investing? What is the stock price of BMNR"))
+# print(get_answer("What is the stock price of AVGOOOO?"))
+
+# print(get_answer("What is personal finance?"))
+# print(get_answer("Tell me more about it"))
+
+# print(get_answer("What is budgeting? Retrieve relevant documents to support your answer."))
+
+
+# print(get_response("What is the stock price of AAPL?", thread_id=1))
+
+# Define the graph state
+from typing import TypedDict, Annotated, List, Optional
+import operator
+from langchain_core.messages import BaseMessage
+
+class AgentState(TypedDict):
+    # Conversation history - persisted with checkpoint memory
+    messages: Annotated[List[BaseMessage], operator.add]
+
+
+def call_model(state: AgentState):
+    query = state["messages"][-1].content
+    print("Invoking QA agent with query:", query)
+    messages = [HumanMessage(content=query)]
     ai_msg = qa_agent.invoke(messages)
     print("AI message:", ai_msg)
     messages.append(ai_msg)
@@ -86,25 +144,60 @@ def get_answer(user_input: str) -> str:
     # Step 3: Pass results back to model for final response
         final_response = qa_agent.invoke(messages)
         messages.append(final_response)
-        return final_response.content
+        return final_response
     else:
-        return ai_msg.content
+        return ai_msg
+    
+def call_model2(state: AgentState):
+    """Itinerary planning agent node"""
+    print("Invoking QA agent...")
+    messages = state["messages"]
+    response = qa_agent.invoke({"messages": messages})
 
+    print("QA agent response:", response)
 
+    # Handle tool calls if present
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        tool_messages = []
+        tool_map = {
+            "get_ticker_info": get_ticker_info,
+            "retrieve_documents": retrieve_documents,
+        }
+        for tool_call in response.tool_calls:
+            if tool_call['name'] in tool_map.keys():
+                try:
+                    tool_result = tool_map[tool_call['name']].invoke(tool_call)
+                except Exception as e:
+                    tool_result = f"Search failed: {str(e)}"
+                finally:
+                    tool_messages.append(tool_result)
 
-def get_response(user_input: str, thread_id: int) -> str:
-    config = {"configurable": {"thread_id": thread_id}}
+        if tool_messages:
+            all_messages = messages + [response] + tool_messages
+            final_response = qa_agent.invoke({"messages": all_messages})
+            print("*"*40)
+            print("Final response after tool calls:", final_response)
+            print("*"*40)
+            return {"messages": [response] + tool_messages + [final_response]}
+
+    return {"messages": [response]}
+
+checkpointer = InMemorySaver()
+
+workflow = StateGraph(AgentState)
+workflow.add_node("agent", call_model2)
+workflow.add_edge("agent", END) # Simple graph, transitions to END after model call
+workflow.add_edge(START, "agent")
+
+qa_agent_app = workflow.compile(checkpointer=checkpointer)
+
+def get_response(user_input: str) -> str:
+    # config = {"configurable": {"thread_id": 2}}
     input_message = HumanMessage(content=user_input)
-    result = agent.invoke({"messages": [input_message]})
+    result = qa_agent_app.invoke({"messages": [input_message]}, {"configurable": {"thread_id": 1}})
+    print(result)
     return result["messages"][-1].content
 
-
-# print(get_answer("What is DCA in investing? What is the stock price of BMNR"))
-# print(get_answer("What is the stock price of AVGOOOO?"))
-
-# print(get_answer("What is personal finance?"))
-
-# print(get_answer("What is budgeting? Retrieve relevant documents to support your answer."))
-
-
-# print(get_response("What is the stock price of AAPL?", thread_id=1))
+# while True:
+#     query = input("Enter a query: ")
+#     print(get_response(query))

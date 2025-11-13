@@ -5,6 +5,8 @@ from utils.constants import MODEL_NAME
 from rag.vector_store import retrieve_documents
 from langchain_core.prompts import ChatPromptTemplate
 from core.fin_tools import get_ticker_info
+from typing import List, Union
+from langgraph.graph import StateGraph, MessagesState, START, END
 
 load_dotenv()
 
@@ -30,9 +32,6 @@ prompt = ChatPromptTemplate.from_messages([
     """)])
 
 agent = prompt | llm_with_tools
-
-from typing import List, Union
-from langgraph.graph import StateGraph, MessagesState, START, END
 
 # Define the graph state
 class AgentState(MessagesState):

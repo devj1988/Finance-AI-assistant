@@ -25,3 +25,4 @@ streamlit==1.46.1
 unstructured>=0.7.0
 yfinance>=0.2.27
 matplotlib==3.8.2
+cachetools>=5.3.1

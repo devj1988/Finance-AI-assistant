@@ -59,4 +59,4 @@ def retrieve_documents(query: str) -> str:
      """
      return invoke_retrieval2(query, retriever)
 
-print(retrieve_documents.invoke("What is personal finance?"))
+# print(retrieve_documents.invoke("What is personal finance?"))

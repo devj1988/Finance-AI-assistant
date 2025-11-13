@@ -2,14 +2,23 @@ from typing import TypedDict, Annotated, List, Optional
 import operator
 from langchain_core.messages import BaseMessage
 from langchain_core.messages import ToolMessage, HumanMessage
-from fin_tools import get_ticker_info, enhance_portfolio_data
+from fin_tools import get_ticker_info, enhance_portfolio_data, yf_snapshot
 from retrieval_tool import retrieve_documents
 from qa_agent_test import get_qa_agent
 from portfolio_insights import get_portfolio_insights_agent
+from market_trends import get_market_trends_agent
 import json
 from model import PortfolioInsights
 from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.memory import InMemorySaver
+from cachetools import TTLCache
+
+class MarketTrendsState(TypedDict):
+    """State schema for market trends agent"""
+
+    ticker_6mo_price_history: Optional[dict]
+
+    news: Optional[list]
 
 class AssistantState(TypedDict):
     """Simple state schema for multiagent system"""
@@ -19,6 +28,8 @@ class AssistantState(TypedDict):
 
     context: str
 
+    market_trends_ticker: Optional[str]
+
     portfolio_json: Optional[dict]
 
     # Agent routing
@@ -27,14 +38,18 @@ class AssistantState(TypedDict):
     # Current user goal
     user_goal: Optional[str]
 
+    market_trends_agent_tools_out: Optional[MarketTrendsState]
+
 
 qa_agent = get_qa_agent()
 
 portfolio_agent = get_portfolio_insights_agent()
 
+market_trends_agent = get_market_trends_agent()
+
 # Agent node functions
 def qa_agent_node(state: AssistantState):
-    """Itinerary planning agent node"""
+    """QA agent node"""
     print("Invoking QA agent...")
     messages = state["messages"]
     response = qa_agent.invoke({"messages": messages})
@@ -67,18 +82,106 @@ def qa_agent_node(state: AssistantState):
 
     return {"messages": [response]}
 
+market_trends_agent_cache = TTLCache(maxsize=100, ttl=3600) 
 
 # Agent node functions
+def market_trends_agent_node(state: AssistantState):
+    """Market trends agent node"""
+    print("Invoking market trends agent...")
+    ticker = state["market_trends_ticker"]
+    print("market_trends_ticker:", ticker)
+    messages = []
+    if ticker in market_trends_agent_cache:
+        print("Using cached messages for ticker:", ticker)
+        return market_trends_agent_cache[ticker]
+    
+    response = market_trends_agent.invoke({
+            "messages": messages,
+            "ticker": ticker,
+        })
+
+    # Handle tool calls if present
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        print("Market trends agent tool calls detected:", response.tool_calls)
+
+        tool_messages = []
+        tool_map = {
+            "yf_snapshot": yf_snapshot,
+        }
+        ticker_6mo_price_history = {}
+        news = []
+        for tool_call in response.tool_calls:
+            if tool_call['name'] in tool_map.keys():
+                try:
+                    tool_result = tool_map[tool_call['name']].invoke(tool_call)
+                    print(tool_result)
+                    if tool_call['name'] == "yf_snapshot" and tool_result:
+                        # Store 6 month price history in state
+                        # print("tool_result from yf_snapshot:", tool_result)
+                        content_json = json.loads(tool_result.content)
+                        print("Extracted ticker:", content_json.get('ticker'))
+                        ticker_6mo_price_history = content_json.get("history_6m", {})
+                        news = content_json.get("news", [])
+                        print("Extracted news articles:", news)
+                        # tool_result.pop("history_6m", None)
+                except Exception as e:
+                    tool_result = f"Search failed: {str(e)}"
+                finally:
+                    tool_messages.append(tool_result)
+
+        if tool_messages:
+            all_messages = messages + [response] + tool_messages
+            final_response = market_trends_agent.invoke({"messages": all_messages, "ticker": ticker})
+            print("*"*40)
+            print("Final response after tool calls:", final_response)
+            print("*"*40)
+            ret = {"messages": [response] + tool_messages + [final_response],
+                   "market_trends_agent_tools_out": MarketTrendsState(
+                       ticker_6mo_price_history=ticker_6mo_price_history,
+                       news=news)}
+    else:
+        ret = {"messages": [response]}
+
+    print("Caching market trends messages for ticker, response  :", ret)
+    market_trends_agent_cache[ticker] = ret
+    return ret
+
+def get_key(portfolio_json: dict, user_goal: str) -> str:
+    """Generate a cache key based on portfolio and user goal"""
+    currency = portfolio_json.get("base_currency", "")
+    holdings = portfolio_json.get("holdings", [])
+    user_goal = user_goal or ""
+
+    holdings.sort(key=lambda x: x.get("ticker", ""))
+
+    portfolio_str = f"{currency}-" + "-".join(
+        [f"{item.get('ticker','')}_{item.get('current_value',0)}" for item in holdings]
+    )
+
+    print("Generated portfolio string for key:", portfolio_str)
+    return f"{portfolio_str}|{user_goal}"
+
+
+portfolio_agent_cache = TTLCache(maxsize=100, ttl=3600) 
+
 def portfolio_agent_node(state: AssistantState):
     """Portfolio analysis agent node"""
     print("Invoking portfolio agent...")
-    print("portfolio_json:", state["portfolio_json"])
-    print("user_goal:", state["user_goal"])
+    # print("portfolio_json:", state["portfolio_json"])
+    # print("user_goal:", state["user_goal"])
+
+    key = get_key(state["portfolio_json"], state["user_goal"])
+
+    if key in portfolio_agent_cache:
+        print("Using cached portfolio analysis for key:", key)
+        return portfolio_agent_cache[key]
+
     response = portfolio_agent.invoke({
             "portfolio_json": state["portfolio_json"],
             "user_goal": state["user_goal"],
         })
     # print(response)
+    portfolio_agent_cache[key] = {"messages": [response]}
     return {"messages": [response]}
 
 def portfolio_enhance_node(state: AssistantState):
@@ -87,7 +190,7 @@ def portfolio_enhance_node(state: AssistantState):
     portfolio_json = state["portfolio_json"]
     enhanced_portfolio_str = enhance_portfolio_data.invoke(json.dumps(portfolio_json, default=str))
     enhanced_portfolio = json.loads(enhanced_portfolio_str)
-    print("enhanced_portfolio:", enhanced_portfolio)
+    # print("enhanced_portfolio:", enhanced_portfolio)
     return {
         "portfolio_json": enhanced_portfolio
     }
@@ -98,8 +201,8 @@ def router_node(state: AssistantState):
     context = state.get("context", "qa")
     print(f"Routing to {context} agent...")
     next_agent = "qa_agent"
-    if context == "market_insights":
-        next_agent = "market_insights_agent"
+    if context == "market_trends":
+        next_agent = "market_trends_agent"
     elif context == "portfolio":
         next_agent = "portfolio_enhance"
     elif context == "goals_planning":
@@ -120,8 +223,8 @@ def route_to_agent(state: AssistantState):
         return "qa_agent"
     elif next_agent == "portfolio_enhance":
         return "portfolio_enhance"
-    elif next_agent == "market_insights_agent":
-        return "market_insights_agent"
+    elif next_agent == "market_trends_agent":
+        return "market_trends_agent"
     elif next_agent == "goals_planning_agent":
         return "goals_planning_agent"
     else:
@@ -136,6 +239,7 @@ def create_workflow():
     workflow.add_node("router", router_node)
     workflow.add_node("portfolio_agent", portfolio_agent_node)
     workflow.add_node("portfolio_enhance", portfolio_enhance_node)
+    workflow.add_node("market_trends_agent", market_trends_agent_node)
     workflow.add_node("qa_agent", qa_agent_node)
 
     workflow.set_entry_point("router")
@@ -146,7 +250,7 @@ def create_workflow():
         {
             "qa_agent": "qa_agent",
             "portfolio_enhance": "portfolio_enhance",
-            # "market_insights_agent": "market_insights_agent",
+            "market_trends_agent": "market_trends_agent",
             # "goals_planning_agent": "goals_planning_agent"
         }
     )

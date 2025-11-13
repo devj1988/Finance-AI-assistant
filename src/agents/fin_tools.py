@@ -20,6 +20,56 @@ def get_ticker_info(ticker: str) -> str:
         return json.dumps({"error": str(e)})
     
 
+def filter_news(news_list, company_name, ticker):
+    """Filter news articles relevant to the company name or ticker."""
+    filtered = []
+    for a in news_list:
+        article = a['content']
+        title = article.get('title', '').lower()
+        if company_name.lower() in title or ticker.lower() in title:
+            filtered.append({
+                "title": article.get("title"),
+                "url": article.get("canonicalUrl"),
+            })
+    return filtered
+
+
+@tool
+def yf_snapshot(ticker: str) -> dict:
+    """Return a combined yfinance snapshot for a given ticker."""
+    print("Fetching yf_snapshot for ticker:", ticker)
+    t = yf.Ticker(ticker)
+    info = t.get_info() if hasattr(t, "get_info") else t.info
+    history = t.history(period="6mo", interval="1d").tail(120).reset_index().to_dict(orient="list")
+    fast = getattr(t, "fast_info", {})
+    news = filter_news(t.news, info.get("displayName", ""), ticker)
+    out = {
+        "ticker": ticker.upper(),
+        "info": info,
+        "fast_info": dict(fast) if fast is not None else {},
+        # "history_6m": history,
+        "news": news
+    }
+    return out
+    
+
+# print("yf_snapshot tool loaded for ticker:", yf_snapshot.invoke("AAPL").content)
+
+
+def yf_news(ticker: str) -> list:
+    """Fetch latest news articles for a given ticker."""
+    print("Fetching yf_news for ticker:", ticker)
+    t = yf.Ticker(ticker)
+    news = t.news
+    for a in news:
+        article = a['content']
+        # print(f"Title: {article.get('title')}\nLink: {article.get('link')}\nPublished: {article.get('providerPublishTime')}\n")
+    return news
+
+# print("yf_news tool loaded for ticker:", yf_news("AAPL"))
+
+# print("yf_snapshot tool loaded for ticker:", yf_snapshot.invoke("AAPL"))
+
 @tool
 def enhance_portfolio_data(portfolio_json: str) -> str:
     """
@@ -38,12 +88,14 @@ def enhance_portfolio_data(portfolio_json: str) -> str:
             ticker = item.get("ticker")
             if ticker:
                 stock_info = yf.Ticker(ticker).info
+                item["current_value"] =  int(item.get("current_value", 0))
                 item["longName"] = stock_info.get("longName", "N/A")
                 item["sector"] = stock_info.get("sector", "N/A")
                 item["industry"] = stock_info.get("industry", "N/A")
                 item["weight_percent"] = round(item.get("current_value", 0) / total_value * 100, 2) if total_value > 0 else 0
+                # item["info"] = stock_info
             enhanced_holdings.append(item)
-        print("Total portfolio value:", total_value)
+        # print("Total portfolio value:", total_value)
         portfolio['holdings'] = enhanced_holdings
         portfolio['total_value'] = total_value
         return json.dumps(portfolio, default=str)

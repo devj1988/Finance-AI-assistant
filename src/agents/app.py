@@ -2,10 +2,11 @@ import streamlit as st
 # from agents import portfolio_insights
 from data.portfolios import simple_portfolio
 import json
-# from agents.qa_agent_gemini import get_response
 from workflow import create_workflow
 from langchain_core.messages import HumanMessage
 import matplotlib.pyplot as plt
+from qa_agent_test import get_response
+from cachetools import cached, TTLCache
 
 app = create_workflow()
 
@@ -78,8 +79,43 @@ def portfolio_pie_chart(portfolio):
 
     st.pyplot(fig)
 
+def handle_market_trends():
+    st.subheader("Market Trends for a Ticker")
+
+    ticker = st.text_input("Enter a stock ticker symbol (e.g., AAPL, MSFT):")
+
+    if st.button("Get Market Trends"):
+        if ticker:
+            with st.spinner(f"Fetching market trends for {ticker}..."):
+                # insights = market_trends.get_market_trends_for_ticker(ticker)
+                messages = app.invoke({
+                                "context": "market_trends",
+                                "market_trends_ticker": ticker,
+                            }, {"configurable": {"thread_id": "1"}})
+                insights = messages['messages'][-1].content
+                # print(messages['messages'][-1])
+                current_state = app.get_state({"configurable": {"thread_id": "1"}})
+                # print("current_state:", current_state.values['market_trends_agent_tools_out'])
+                tool_outputs = current_state.values['market_trends_agent_tools_out']
+                print("tool_outputs:", tool_outputs)
+                print(type(tool_outputs))
+                # print(current_state['context'])
+                if "news" in tool_outputs:
+                    st.markdown("### Recent News Articles")
+                    for article in tool_outputs['news']:
+                        title = article.get('title')
+                        link = article.get('url', {}).get('url', '')
+                        st.write(f"- [{title}]({link})")
+                    else:
+                        st.write("No recent news articles found.")
+                st.markdown(f"### Market Trends for {ticker}: ")
+                st.write(insights)
+        else:
+            st.error("Please enter a valid ticker symbol.")
+
 def handle_portfolio_insights():
-    st.subheader("Example Portfolio JSON")
+    st.subheader("Portfolio Insights")
+    st.text("Example Portfolio JSON")
     st.json(simple_portfolio, expanded=False)
 
     uploaded_file = st.file_uploader("Choose a portfolio JSON file (Example above)", type=["json"])
@@ -112,7 +148,7 @@ def main():
     st.write("This is an AI assistant that can give insights on investment portfolios, do market trends analysis, and answer finance-related questions.")
     
     # Main interface
-    tab1, tab2, tab3 = st.tabs(["Main", "Portfolio Insights", "Market Trends"])
+    tab1, tab2, tab3 = st.tabs(["Chat with Agent", "Portfolio Insights", "Market Trends"])
 
     with tab1:
         st.subheader("Chat with the Finance AI Assistant")
@@ -137,15 +173,15 @@ def main():
             st.session_state.messages.append({"role": "user", "content": prompt})
 
             # response = f"Echo: {prompt}"
-            # response = get_response(prompt, 1)
-            messages = app.invoke({
-                    "messages": [HumanMessage(content=prompt)],
-                    "next_agent": "",
-                    "context": "qa",
-                    }, 
-                {"configurable": {"thread_id": "1"}}
-                )
-            response = messages['messages'][-1].content
+            response = get_response(prompt)
+            # messages = app.invoke({
+            #         "messages": [HumanMessage(content=prompt)],
+            #         "next_agent": "",
+            #         "context": "qa",
+            #         }, 
+            #     {"configurable": {"thread_id": "1"}}
+            #     )
+            # response = messages['messages'][-1].content
             # Display assistant response in chat message container
             with st.chat_message("assistant"):
                 st.markdown(response)
@@ -153,12 +189,10 @@ def main():
             st.session_state.messages.append({"role": "assistant", "content": response})
 
     with tab2:
-        st.subheader("Portfolio Insights")
         handle_portfolio_insights()
 
     with tab3:
-        st.subheader("Market Trends")
-        # handle_market_trends()
+        handle_market_trends()
 
 if __name__ == "__main__":
     main()
