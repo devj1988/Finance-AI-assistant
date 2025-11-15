@@ -39,6 +39,10 @@ The LLM used is gemini-2.0-flash.
 
 # Setup instructions
 
+create a .env file with your google api key:
+
+GOOGLE_API_KEY=[your key]
+
 ```
 $conda create -n fin-bot-submission python=3.11
 $conda activate fin-bot-submission
@@ -97,6 +101,10 @@ Notes:
 Use these references when instrumenting the UI, debugging routing, or extending agents/tools.
 
 # Usage
+
+create a .env file with your google api key:
+
+GOOGLE_API_KEY=[your key]
 
 ```
 $ cd src/agents
