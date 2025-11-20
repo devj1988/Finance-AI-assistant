@@ -20,7 +20,7 @@ Components:
 
 ### LLM
 
-The LLM used is gemini-2.0-flash.
+The LLM used is gemini-2.0-flash. It was chosen because of its generious free tier offering.
 
 ### UI
 - Streamlit-based interface
@@ -64,9 +64,6 @@ $streamlit run app.py
 - qa_agent_test.py  
     - A standalone QA agent that uses RAG (retrieval-augmented generation) to answer finance questions from a ChromaDB vector store.
 
-Notes:
-- The first three agents (goal planning, market trends, portfolio insights) are part of the multi-agent system/workflow.
-- The QA agent was split out from the multi-agent graph due to multi-turn chat/state handling challenges (single messages variable / placeholder binding). It is intentionally separate; there is currently no inter-agent communication.
 
 ### Tools (files and functions)
 - retrieval_tool.py  
@@ -75,8 +72,6 @@ Notes:
     - get_ticker_info(ticker) — fetches basic stock info (yfinance).
     - yf_snapshot(...) — fetches historical prices and news snapshots (yfinance).
     - enhance_portfolio_data(portfolio_json) — computes total value, allocation weights, and enriches tickers (used by the portfolio enhancement tool).
-- portfolio_enhance (tool)  
-    - Separated from the portfolio agent because the portfolio agent emits structured JSON; binding tools to structured outputs caused issues with existing tool-binding approaches.
 
 ### Router / Workflow
 - workflow.py  
@@ -90,7 +85,7 @@ Notes:
 - Separation rationale:
     - QA agent separated to simplify multi-turn/chat state handling.
     - portfolio_enhance kept as an independent tool because the portfolio agent returns structured JSON which proved unreliable when binding as a tool inside Langchain-style tool dispatch.
-- Agents share common tool implementations (yfinance-based helpers) but do not exchange messages or maintain shared conversation state.
+- Other agents are part of a mutil-agent graph.
 
 ### Quick references
 - Multi-agent files: src/agents/{goal_planning.py, market_trends.py, portfolio_insights.py}
