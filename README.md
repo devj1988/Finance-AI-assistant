@@ -1,9 +1,11 @@
-# Overview
+# Demo and Deployment Links
 
 Currently deployed on GCP:
 [here](https://fin-ai-assistant-471184440470.us-central1.run.app/)
 
 [Demo video](https://www.youtube.com/watch?v=CECdftp0F4A)
+
+# Overview
 
 This project builds a practical, retrieval-augmented finance assistant that combines a large LLM with small focused tools to answer questions, analyze portfolios, surface market trends, and generate goal-driven recommendations.
 
