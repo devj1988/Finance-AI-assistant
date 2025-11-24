@@ -1,4 +1,4 @@
-urls=[
+investopedia_urls=[
     "https://www.investopedia.com/personal-finance-4427760",
     "https://www.investopedia.com/budgeting-and-savings-4427755",
     "https://www.investopedia.com/personal-loans-4689729",
@@ -18,7 +18,7 @@ urls=[
     "https://www.investopedia.com/ask/answers/042415/what-average-annual-return-sp-500.asp",
     "https://www.investopedia.com/cryptocurrency-4427699",
     "https://www.investopedia.com/investing-in-cryptocurrency-5215269",
-    "https://www.investopedia.com/best-crypto-exchanges-5071855"
+    "https://www.investopedia.com/best-crypto-exchanges-5071855",
     "https://www.investopedia.com/bitcoin-halving-4843769",
     "https://www.investopedia.com/news/how-find-your-next-cryptocurrency-investment/",
     "https://www.investopedia.com/cryptocurrency-regulations-around-the-world-5202122",

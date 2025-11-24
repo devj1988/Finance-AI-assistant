@@ -1,6 +1,6 @@
 from model import GoalPlanResult, PortfolioInsights
 import streamlit as st
-# from agents import portfolio_insights
+import os
 from data.portfolios import simple_portfolio
 import json
 from workflow import create_workflow
@@ -14,8 +14,6 @@ import logging
 
 st_logger = logging.getLogger('streamlit')
 st_logger.setLevel(logging.INFO)
-
-app = create_workflow()
 
 # Initialize Streamlit state
 if "messages" not in st.session_state:
@@ -308,7 +306,7 @@ def portfolio_pie_chart(portfolio):
 
     st.pyplot(fig)
 
-def handle_market_trends():
+def handle_market_trends(app):
     st.subheader("Market Trends for a Ticker")
 
     ticker = st.text_input("Enter a stock ticker symbol (e.g., AAPL, MSFT):")
@@ -348,7 +346,7 @@ def handle_market_trends():
         else:
             st.error("Please enter a valid ticker symbol.")
 
-def handle_portfolio_insights():
+def handle_portfolio_insights(app):
     st.subheader("Portfolio Insights")
     st.text("Example Portfolio JSON")
     st.json(simple_portfolio, expanded=False)
@@ -559,7 +557,7 @@ def validate(goal_type, goal_target_amount, goal_target_year,
              annual_income,  monthly_expenses, monthly_savings):
     return True, ""
 
-def handle_goal_planning():
+def handle_goal_planning(app):
     st.subheader("Goal Planning")
     st.text("Define your financial goals and let the AI assist you in planning.")
 
@@ -607,6 +605,7 @@ def handle_goal_planning():
                 handle_goal_planning_output(output)
 
 def main():
+    app = create_workflow()
     st.title("Finance AI Assistant")
     st.write("This is an AI assistant that can give insights on investment portfolios, do market trends analysis, and answer finance-related questions.")
     
@@ -644,13 +643,18 @@ def main():
             st.session_state.messages.append({"role": "assistant", "content": response})
 
     with tab2:
-        handle_portfolio_insights()
+        handle_portfolio_insights(app)
 
     with tab3:
-        handle_market_trends()
+        handle_market_trends(app)
 
     with tab4:
-        handle_goal_planning()
+        handle_goal_planning(app)
 
 if __name__ == "__main__":
-    main()
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        st.error("Please provide GOOGLE_API_KEY")
+        st.stop()
+    else:
+        main()

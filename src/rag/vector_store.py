@@ -6,8 +6,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
 # from utils import urls
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_ollama import OllamaEmbeddings
-from urls import urls, boglehead_urls
+from urls import investopedia_urls, boglehead_urls
 from uuid import uuid4
 from langchain_core.documents import Document
 import time
@@ -15,14 +14,9 @@ import chromadb
 
 load_dotenv()  # take environment variables from .env file
 
-# embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
-# embeddings = OllamaEmbeddings(
-#     model="llama3",
-# )
-
-VECTOR_STORE_PATH = "../data/boglehead_chroma_db-nov-11-2024" 
+VECTOR_STORE_PATH = "../data/investopedia_chroma_db-nov-21-2024_2" 
 COLLECTION_NAME = "finance_docs"
 
 def get_vector_store(dbpath, collection_name):
@@ -43,24 +37,39 @@ def count_documents(dbpath, collection_name):
     print("Collection name:", collection.name)
     print("Number of documents in collection:", collection.count())
 
+def add_documents_to_vector_store(vector_store, documents, uuids, after=1, max_retries=5, max_sleep=180):
+    """Add documents to the vector store."""
+    try:
+        vector_store.add_documents(documents=documents, ids=uuids)
+    except Exception as e:
+        print(f"Error adding documents to vector store: , will sleep for {pow(3, after)} seconds", e)
+        time.sleep(min(pow(3, after), max_sleep))
+        if after <= max_retries:
+            add_documents_to_vector_store(vector_store, documents, uuids, after + 1)
+        else:
+            raise e
+
+
 def create_vector_store_from_urls():
     """Search for relevant documents."""
     # Load documents
     vector_store = get_vector_store(VECTOR_STORE_PATH, COLLECTION_NAME)
     count_documents(VECTOR_STORE_PATH, COLLECTION_NAME)
-    all_urls = boglehead_urls
+    all_urls = investopedia_urls
     batch_size = 1
     print(f"Total URLs to process: {len(all_urls)}")
     print(f"Batch size: {batch_size}")
     print("Number of batches:", (len(all_urls) + batch_size - 1) // batch_size)
     print("-----------------------------")
     print("Starting document retrieval and vector store creation...")
-    for i in range(0, 2, batch_size):
+    i = 0
+    while i < len(all_urls):
         print(f"Processing URLs {i} to {i + batch_size}...")
         docs = retrieve_and_chunk_documents(all_urls[i:i + batch_size])
         uuids = [str(uuid4()) for _ in range(len(docs))]
-        vector_store.add_documents(documents=docs, ids=uuids)
-        time.sleep(5)  # Sleep to avoid overwhelming any servers
+        add_documents_to_vector_store(vector_store, docs, uuids)
+        i += batch_size
+        time.sleep(10)  # Sleep to avoid overwhelming any servers
     count_documents(VECTOR_STORE_PATH, COLLECTION_NAME)
 
 
@@ -73,28 +82,27 @@ def create_vector_store_from_files():
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=50)
     doc_splits = text_splitter.split_documents(docs)
 
-    print(doc_splits[-1])
-
     batch_size = 5
     print(f"Total documents after splitting: {len(doc_splits)}")
 
-    for i in range(115, len(doc_splits), batch_size):
+    for i in range(0, len(doc_splits), batch_size):
         print(f"Processing documents {i} to {i + batch_size}...")
         batch_docs = doc_splits[i:i + batch_size]
         uuids = [str(uuid4()) for _ in range(len(batch_docs))]
-        vector_store.add_documents(documents=batch_docs, ids=uuids)
-        time.sleep(5)  # Sleep to avoid overwhelming any servers
+        add_documents_to_vector_store(vector_store, docs, uuids, max_retries=8)
+        # vector_store.add_documents(documents=batch_docs, ids=uuids)
+        time.sleep(10)  # Sleep to avoid overwhelming any servers
     count_documents(VECTOR_STORE_PATH, COLLECTION_NAME)
 
 
 def retrieve_and_chunk_documents(urls):
-    # docs = load_doc_from_url(urls)
+    docs = load_doc_from_url(urls)
 
     # Split documents
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=50)
     doc_splits = text_splitter.split_documents(docs)
 
-    print(doc_splits[-1])
+    print(doc_splits[0])
 
     print(f"Total documents after splitting: {len(doc_splits)}")
 
@@ -145,8 +153,6 @@ def load_document_from_file(dir_path):
         docs.append(doc[0])
     return docs
 
-# boglehead_urls_docs = load_document_from_file("./kb/boglehead/")
-# print(boglehead_urls_docs[0])
-# print(f"Total loaded documents from files: {len(boglehead_urls_docs)}")
 
 create_vector_store_from_files()
+# create_vector_store_from_urls()
